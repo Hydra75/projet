@@ -13,6 +13,9 @@ while getopts ":G:g:s:u:" opt; do
   esac
 done
 
+# Obtenir la liste des membres du groupe sudo
+sudoers_group=$(getent group sudo | awk -F: '{print $4}')
+
 # Parcourir /etc/passwd pour obtenir les entrées d'utilisateurs humains
 grep ":x:[${MIN_UID}-9][0-9][0-9][0-9]:" /etc/passwd | while IFS=':' read -r login password uid gid gecos home shell; do
     primary_group=$(id -gn "$login")
@@ -27,7 +30,7 @@ grep ":x:[${MIN_UID}-9][0-9][0-9][0-9]:" /etc/passwd | while IFS=':' read -r log
 
     # Vérifier et appliquer le filtre sudoer
     sudo_status="NON"
-    if sudo -l -U "$login" 2>/dev/null | grep -q '(ALL)'; then
+    if echo "$sudoers_group" | grep -qw "$login"; then
         sudo_status="OUI"
     fi
     if [[ -n "$sudo_option" && (("$sudo_option" == "1" && "$sudo_status" != "OUI") || ("$sudo_option" == "0" && "$sudo_status" != "NON")) ]]; then
